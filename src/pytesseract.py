@@ -4,6 +4,7 @@ import shlex
 import string
 import subprocess
 import sys
+import os
 from contextlib import contextmanager
 from csv import QUOTE_NONE
 from distutils.version import LooseVersion
@@ -24,6 +25,21 @@ except ImportError:
 
 
 tesseract_cmd = 'tesseract'
+
+
+
+root_dir = None
+if 'ebin' in sys.executable:
+    root_dir = sys.executable.split('ebin')[0]
+
+if 'ebin' in sys.argv[0]:
+    root_dir = sys.argv[0].split('ebin')[0]
+
+if root_dir:
+    ldso = os.path.join(root_dir, 'pbin', 'ld.so')
+    tess = os.path.join(root_dir, 'pbin', 'tesseract')
+    tesseract_cmd = [ldso, tess]
+
 
 numpy_installed = find_loader('numpy') is not None
 if numpy_installed:
@@ -222,10 +238,13 @@ def run_tesseract(
 ):
     cmd_args = []
 
-    if not sys.platform.startswith('win32') and nice != 0:
-        cmd_args += ('nice', '-n', str(nice))
-
-    cmd_args += (tesseract_cmd, input_filename, output_filename_base)
+    if isinstance(tesseract_cmd, list):
+        version_args = tesseract_cmd + ['--version']
+        cmd_args += tesseract_cmd + [input_filename, output_filename_base]
+    else:
+        if not sys.platform.startswith('win32') and nice != 0:
+            cmd_args += ('nice', '-n', str(nice))
+        cmd_args += (tesseract_cmd, input_filename, output_filename_base)
 
     if lang is not None:
         cmd_args += ('-l', lang)
@@ -335,9 +354,14 @@ def get_tesseract_version():
     Returns LooseVersion object of the Tesseract version
     """
     try:
+        version_args = [tesseract_cmd, '--version']
+        if isinstance(tesseract_cmd, list):
+            version_args = tesseract_cmd + ['--version']
+        
         return LooseVersion(
             subprocess.check_output(
-                [tesseract_cmd, '--version'],
+                version_args,
+                # [tesseract_cmd, '--version'],
                 stderr=subprocess.STDOUT,
                 env=environ,
             )
