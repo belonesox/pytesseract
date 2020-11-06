@@ -8,7 +8,7 @@ if os.path.exists(README_PATH):
     with open(README_PATH) as readme:
         LONG_DESC = readme.read()
 
-INSTALL_REQUIRES = ['Pillow']
+INSTALL_REQUIRES = ['pillow==7.2.0']
 PACKAGE_NAME = 'pytesseract'
 PACKAGE_DIR = 'src'
 
